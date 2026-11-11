@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin – warung ibu my</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2A1512;--paper:#FFF8EE;--chili:#C6211B;--oil:#F4B63A;--soft:#F3E4CE;--ok:#1FA855}
+*{box-sizing:border-box;margin:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);padding:20px;line-height:1.5}
+h1{font-family:'Bricolage Grotesque',Georgia,sans-serif;font-weight:800;font-size:1.8rem}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+button,input,select{font:inherit}
+button{cursor:pointer;border:2px solid var(--ink);border-radius:99px;padding:6px 14px;background:var(--oil);font-weight:700}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.red{background:var(--chili);color:#fff}
+button.green{background:var(--ok);color:#fff}
+button.plain{background:#fff}
+input,select{padding:9px 12px;border:2px solid var(--ink);border-radius:10px;background:#fff}
+#login{max-width:320px;margin:14vh auto;display:grid;gap:10px}
+#login input{text-align:center;font-size:1.4rem;letter-spacing:.4em}
+#app{display:none}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.stat{border:2px solid var(--ink);border-radius:12px;background:#fff;padding:8px 14px}
+.stat b{display:block;font-size:1.2rem}
+.wrapt{overflow-x:auto;border:2px solid var(--ink);border-radius:12px;background:#fff}
+table{border-collapse:collapse;width:100%;min-width:820px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--soft);vertical-align:top;font-size:.92rem}
+th{background:var(--soft)}
+.tag{display:inline-block;border-radius:99px;padding:2px 10px;font-size:.8rem;font-weight:700;border:2px solid var(--ink);background:#fff}
+.tag.dibayar{background:var(--oil)}.tag.terverifikasi{background:var(--ok);color:#fff}
+.tag.kedaluwarsa,.tag.batal{background:#ddd}
+#err{color:var(--chili);font-weight:700;min-height:1.4em;text-align:center}
+.info{font-size:.85rem;color:#5b4540;margin-top:12px}
+</style>
+</head>
+<body>
+
+<form id="login">
+  <h1 style="text-align:center">Admin</h1>
+  <input id="pin" type="password" inputmode="numeric" placeholder="PIN" autocomplete="off" maxlength="12" required>
+  <button type="submit" id="go">Masuk</button>
+  <p id="err"></p>
+</form>
+
+<div id="app">
+  <div class="top"><h1>Data pelanggan</h1><div><a href="index.html"><button class="plain" type="button">Ke web</button></a> <button class="plain" id="out">Keluar</button></div></div>
+  <div class="stats">
+    <div class="stat">Perlu dicek<b id="sWait">0</b></div>
+    <div class="stat">Terverifikasi<b id="sOk">0</b></div>
+    <div class="stat">Omzet terverifikasi<b id="sSum">Rp0</b></div>
+  </div>
+  <div class="bar">
+    <input id="q" placeholder="Cari nama / kelas / no. pesanan">
+    <select id="f">
+      <option value="">Semua status</option>
+      <option value="dibayar">Sudah bayar (perlu dicek)</option>
+      <option value="terverifikasi">Terverifikasi</option>
+      <option value="menunggu">Menunggu bayar</option>
+      <option value="kedaluwarsa">Kedaluwarsa</option>
+      <option value="batal">Batal</option>
+    </select>
+    <button class="plain" id="csv">Unduh CSV</button>
+    <button class="red" id="clear">Hapus semua</button>
+  </div>
+  <div class="wrapt">
+    <table>
+      <thead><tr><th>Waktu</th><th>No.</th><th>Pelanggan</th><th>Pesanan</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="info">Data tersimpan di browser perangkat ini saja. Pesanan dari HP pembeli lain tidak muncul di sini. Jangan hapus data browser (cache/site data) sebelum mengunduh CSV.</p>
+</div>
+
+<script>
+const ADMIN_PIN = "232010";          // ganti PIN di sini
+const ORDERS_KEY = "wim_orders";
+const $ = s => document.querySelector(s);
+const rp = n => "Rp" + (n||0).toLocaleString("id-ID");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const load = () => { try { return JSON.parse(localStorage.getItem(ORDERS_KEY)) || []; } catch(e){ return []; } };
+const save = l => localStorage.setItem(ORDERS_KEY, JSON.stringify(l));
+const fmt = t => t ? new Date(t).toLocaleString("id-ID", { dateStyle:"short", timeStyle:"short" }) : "-";
+
+/* ---- PIN + batas percobaan ---- */
+let fails = 0, lockUntil = 0;
+function showApp(on){
+  $("#login").style.display = on ? "none" : "grid";
+  $("#app").style.display = on ? "block" : "none";
+  if (on) render();
+}
+$("#login").onsubmit = e => {
+  e.preventDefault();
+  const left = Math.ceil((lockUntil - Date.now()) / 1000);
+  if (left > 0) { $("#err").textContent = `Coba lagi dalam ${left} detik.`; return; }
+  if ($("#pin").value === ADMIN_PIN) {
+    sessionStorage.setItem("wim_admin", "1"); fails = 0; $("#pin").value = ""; $("#err").textContent = ""; showApp(true);
+  } else {
+    fails++; $("#pin").value = "";
+    if (fails >= 5) { lockUntil = Date.now() + 30000; fails = 0; $("#err").textContent = "Terlalu banyak salah. Tunggu 30 detik."; }
+    else $("#err").textContent = "PIN salah.";
+  }
+};
+$("#out").onclick = () => { sessionStorage.removeItem("wim_admin"); showApp(false); };
+showApp(sessionStorage.getItem("wim_admin") === "1");
+
+/* ---- Daftar pesanan ---- */
+function filtered(){
+  const q = $("#q").value.toLowerCase(), f = $("#f").value;
+  return load().filter(o => (!f || o.status === f) &&
+    (!q || [o.id, o.name, o.kelas].join(" ").toLowerCase().includes(q)));
+}
+function render(){
+  const all = load(), list = filtered();
+  $("#rows").innerHTML = list.length ? list.map(o => `
+    <tr>
+      <td>${fmt(o.createdAt)}</td>
+      <td><strong>${esc(o.id)}</strong></td>
+      <td>${esc(o.name)}<br><small>Kelas ${esc(o.kelas)}</small>${o.note ? `<br><small>Catatan: ${esc(o.note)}</small>` : ""}</td>
+      <td>${(o.items||[]).map(i => `${esc(i.name)} x${i.qty}`).join("<br>")}</td>
+      <td>${rp(o.total)}</td>
+      <td><span class="tag ${esc(o.status)}">${esc(o.status)}</span></td>
+      <td>
+        ${o.status === "dibayar" ? `<button class="green" data-a="ok" data-id="${esc(o.id)}">Verifikasi</button>` : ""}
+        <button class="red" data-a="del" data-id="${esc(o.id)}">Hapus</button>
+      </td>
+    </tr>`).join("") : `<tr><td colspan="7">Belum ada data.</td></tr>`;
+  const ok = all.filter(o => o.status === "terverifikasi");
+  $("#sWait").textContent = all.filter(o => o.status === "dibayar").length;
+  $("#sOk").textContent = ok.length;
+  $("#sSum").textContent = rp(ok.reduce((a, o) => a + (o.total||0), 0));
+}
+$("#rows").addEventListener("click", e => {
+  const b = e.target.closest("button[data-a]"); if (!b) return;
+  let l = load();
+  if (b.dataset.a === "ok") { const o = l.find(x => x.id === b.dataset.id); if (o) o.status = "terverifikasi"; }
+  if (b.dataset.a === "del") { if (!confirm("Hapus pesanan " + b.dataset.id + "?")) return; l = l.filter(x => x.id !== b.dataset.id); }
+  save(l); render();
+});
+$("#clear").onclick = () => { if (confirm("Hapus SEMUA data pesanan? Unduh CSV dulu kalau perlu.")) { save([]); render(); } };
+$("#q").oninput = $("#f").onchange = render;
+window.addEventListener("storage", e => { if (e.key === ORDERS_KEY && $("#app").style.display === "block") render(); });
+
+$("#csv").onclick = () => {
+  const head = ["Waktu","No","Nama","Kelas","Pesanan","Total","Status","Catatan"];
+  const cell = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const rows = filtered().map(o => [fmt(o.createdAt), o.id, o.name, o.kelas,
+    (o.items||[]).map(i => `${i.name} x${i.qty}`).join("; "), o.total, o.status, o.note].map(cell).join(","));
+  const blob = new Blob(["\ufeff" + [head.map(cell).join(","), ...rows].join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "pesanan.csv"; a.click();
+};
+</script>
+</body>
+</html>

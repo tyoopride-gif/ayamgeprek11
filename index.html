@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>warung ibu my – Ayam Geprek Renyah, Sambal Nendang</title>
+<meta name="description" content="Ayam geprek renyah dengan sambal buatan sendiri. Bayar pakai QRIS.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a href="#top" class="logo">warung ibu my</a>
+    <nav>
+      <a class="hide-sm" href="#menu">Menu</a>
+      <button class="cart-btn" id="openCart" aria-label="Buka keranjang">Keranjang <span id="count">0</span></button>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero" id="hero">
+    <div class="wrap">
+      <div>
+        <h1>Renyah di luar, nendang di lidah.</h1>
+        <p class="lead">Ayam digoreng tiap hari, digeprek bareng sambal yang kami ulek sendiri.</p>
+        <a href="#menu" class="btn">Pesan sekarang</a>
+        <a href="#menu" class="btn alt">Lihat menu</a>
+      </div>
+    </div>
+  </div>
+
+  <section id="menu">
+    <div class="wrap">
+      <h2>Menu</h2>
+      <p class="sub">Pilih menu favoritmu, tambahkan ke keranjang, bayar pakai QRIS, lalu pesanan terkirim ke penjual lewat WhatsApp.</p>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="grid" id="grid"></div>
+      <p class="note"><strong>Catatan untuk pembeli:</strong> harga di web dapat berubah sewaktu-waktu dan bisa mengalami kenaikan.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">© 2026 warung ibu my. · <a href="admin.html">Admin</a></footer>
+
+<a class="wa" href="https://wa.me/6287764013305?text=Halo%20warung%20ibu%20my%2C%20saya%20mau%20tanya" target="_blank" rel="noopener">Chat WhatsApp</a>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Keranjang belanja" aria-hidden="true">
+  <header><h2>Keranjang</h2><button class="close" id="closeCart" aria-label="Tutup keranjang">×</button></header>
+  <div class="items" id="items"></div>
+  <div class="checkout">
+    <input id="name" placeholder="Nama kamu" autocomplete="name">
+    <input id="kelas" placeholder="Kelas" autocomplete="off">
+    <input id="note" placeholder="Catatan (opsional), misal: pedas / tanpa timun">
+    <div class="total"><span>Total</span><span id="total">Rp0</span></div>
+    <small>Pembayaran hanya lewat QRIS. QR muncul setelah kamu menekan tombol bayar.</small>
+    <button class="btn" id="send">Bayar dengan QRIS</button>
+  </div>
+</aside>
+
+<!-- Pembayaran QRIS -->
+<div class="pay" id="pay" role="dialog" aria-modal="true" aria-labelledby="payTitle">
+  <div class="pay-box">
+    <h2 id="payTitle">Bayar dengan QRIS</h2>
+    <div>
+      <div class="pay-amount" id="payAmount">Rp0</div>
+      <small>Pesanan <strong id="payId"></strong> · masukkan nominal sesuai total</small>
+    </div>
+    <div class="pay-timer" id="payTimer"><span>Selesaikan dalam</span><strong id="payTime">03:00</strong></div>
+    <img class="pay-qr" src="qris.jpg" alt="QRIS Ayam Katsu Ibu My, Kantin Yadika 13">
+    <p class="pay-expired" id="payExpired">Waktu pembayaran habis. Pesanan dibatalkan, silakan pesan lagi.</p>
+    <ol class="pay-steps">
+      <li>Buka aplikasi bank atau e-wallet, pilih scan QRIS.</li>
+      <li>Masukkan nominal sesuai total di atas, lalu bayar.</li>
+      <li>Setelah berhasil, tekan "Saya sudah bayar" untuk mengirim pesanan ke penjual.</li>
+    </ol>
+    <div class="pay-actions">
+      <button class="btn" id="paid">Saya sudah bayar</button>
+      <button class="btn ghost" id="cancelPay">Batalkan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
